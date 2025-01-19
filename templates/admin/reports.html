@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Page</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            box-sizing: border-box;
+            display: flex; /* Add flex display to body */
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between; /* Ensures elements align side-by-side */
+            gap: 20px;
+        }
+
+        .box {
+            background: #fff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            flex: 1;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .badge {
+            font-size: 1rem;
+            background-color: #007BFF;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        .badge.bg-danger {
+            background-color: #dc3545;
+        }
+
+        .event-list table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .event-list th, .event-list td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        .event-list th {
+            background-color: #007BFF;
+            color: white;
+        }
+
+        .event-list tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        form .form-select {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        button.btn-primary {
+            padding: 10px;
+            width: 100%;
+            border-radius: 5px;
+        }
+
+            /* Sidebar styling */
+    /* Sidebar styling */
+    .sidebar {
+        width: 250px;
+        background-color: #2c3e50;
+        padding: 20px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        overflow-y: auto;
+    }
+
+    .sidebar img {
+        width: 80px;
+        margin-bottom: 40px;
+        cursor: pointer;
+    }
+
+    .sidebar button {
+        width: 100%;
+        margin-bottom: 20px;
+        background-color: #2c3e50;
+        color: white;
+        border: none;
+        text-align: left;
+        font-size: 16px;
+        cursor: pointer;
+        padding: 15px;
+        box-sizing: border-box;
+        outline: none;
+    }
+
+    .sidebar button:hover {
+        background-color: #34495e;
+    }
+
+    /* Main content layout */
+    .container {
+        flex: 1;
+        margin-left: 250px; /* Match sidebar width */
+        padding: 20px;
+        box-sizing: border-box;
+        background: #fff;
+        min-height: 100vh;
+    }
+
+    /* Responsive adjustments for smaller screens */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                position: relative;
+                height: auto;
+            }
+            
+            .container {
+                margin-left: 0;
+                width: 100%;
+            }
+            
+            .row {
+                flex-direction: column;
+            }
+
+            .card .box {
+                flex: 1 1 100%; /* Full width for smaller screens */
+            }
+
+            button.btn-primary {
+                width: 100%; /* Full width for smaller screens */
+                margin-left: 0; /* Reset margin for mobile */
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <a onclick="location.href='/admin/homepage'">
+                <img src="logo.png" alt="Logo">
+            </a>
+            <button onclick="window.location.href='{{ url_for('admin_home') }}'">Home</button>
+            <button onclick="window.location.href='{{ url_for('admin_reports') }}'">Reports</button>
+            <button onclick="window.location.href='{{ url_for('admin_event') }}'">Events</button>
+            <button onclick="window.location.href='{{ url_for('admin_faceregister') }}'">Face Register</button>
+            <button onclick="window.location.href='{{ url_for('admin_attendancesession') }}'">Attendance Session</button>
+            <button onclick="window.location.href='{{ url_for('logout') }}'">Log Out</button>
+        </div>
+        <!-- Top Row -->
+        <div class="row">
+            <!-- Top Left: Search Criteria -->
+            <div class="box">
+                <h5 class="section-title">Carian</h5>
+                <form>
+                    <div class="mb-3">
+                        <label for="session" class="form-label">SESI:</label>
+                        <select id="session" class="form-select">
+                            <option value="20242">20242</option>
+                            <option value="20244">20244</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label">KATEGORI:</label>
+                        <select id="category" class="form-select">
+                            <option value="all">Semua Aktiviti</option>
+                            <option value="kolej">kolej</option>
+                            <option value="bukan kolej">bukan kolej</option>
+                        </select>
+                    </div>
+                    <button id="search" type="submit" class="btn btn-primary">Cari</button>
+                </form>
+            </div>
+
+            <!-- Top Right: Statistics -->
+            <div class="box">
+                <h5 class="section-title">STATISTIK AKTIVITI & MERIT</h5>
+                <div class="stat-item">
+                    <span>JUMLAH AKTIVITI KOLEJ</span>
+                    <span id="kolej" class="badge">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>KEHADIRAN AKTIVITI KOLEJ</span>
+                    <span id="jkolej" class="badge">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>JUMLAH AKTIVITI BUKAN KOLEJ</span>
+                    <span id="nkolej" class="badge">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>KEHADIRAN AKTIVITI BUKAN KOLEJ</span>
+                    <span id="jnkolej" class="badge">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>JUMLAH KEHADIRAN</span>
+                    <span id="jkehadiran" class="badge bg-danger">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Row: Event List -->
+        <div class="box event-list" style="margin-top: 20px;">
+            <h5 class="section-title">Senarai Aktiviti</h5>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Event ID</th>
+                        <th>Event Name</th>
+                        <th>Date</th>
+                        <th>Category</th>
+                        <th>Jumlah Kehadiran</th>
+                    </tr>
+                </thead>
+                <tbody id="eventTableBody">
+                    <!-- Data will be populated here via SQL query -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("search").addEventListener("click", async () => {
+            event.preventDefault()
+            try {
+                // Get selected values from dropdowns
+                const session = document.getElementById("session").value;
+                const category = document.getElementById("category").value;
+                // Build query string
+                const queryParams = new URLSearchParams({
+                    session: session,
+                    category: category
+                }).toString();
+                console.log("Query string:", queryParams);
+
+                // Call the backend endpoint
+                const response = await fetch(`/admin/attendancereport?${queryParams}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include' // Include session cookies
+                });
+                // Check if the request was successful
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status}`);
+                }
+
+                // Parse and display the results
+                const data = await response.json();
+                const eventTableBody = document.getElementById("eventTableBody");
+                eventTableBody.innerHTML = ""; // Clear previous results
+                // Initialize counters for event types
+                let kolej = 0, nkolej = 0, jkolej = 0, jnkolej = 0;
+
+                if (data.events && data.events.length > 0) {
+                    data.events.forEach(event => {
+                        // Create a table row for each event
+                        const row = document.createElement("tr");
+                        row.innerHTML = `
+                            <td>${event.eventid}</td>
+                            <td>${event.name}</td>
+                            <td>${event.date}</td>
+                            <td>${event.category}</td>
+                            <td>${event.attendance_count}</td>
+                        `;
+                        eventTableBody.appendChild(row);
+
+                        // Increment type counters based on event type
+                        if (event.category === "kolej") {
+                            jkolej=jkolej+event.attendance_count;
+                            kolej++;
+                            console.log(jkolej)
+                        } else if (event.category === "bukan kolej") {
+                            jnkolej=jnkolej+event.attendance_count;
+                            nkolej++;
+                            console.log(jnkolej)
+                        }
+                    });
+
+                    // Optionally, display type counts somewhere in your UI
+                    document.getElementById("kolej").innerText = kolej;
+                    document.getElementById("jkolej").innerText = jkolej;
+                    document.getElementById("nkolej").innerText = nkolej;
+                    document.getElementById("jnkolej").innerText = jnkolej;
+                    document.getElementById("jkehadiran").innerText = (jkolej + jnkolej);
+                } else {
+                    // If no events are found
+                    eventTableBody.innerHTML = "<tr><td colspan='5'>No events found.</td></tr>";
+                }
+            } catch (error) {
+                console.error("Error fetching attendance data:", error);
+                document.getElementById("results").innerHTML = `<p>Error fetching data: ${error.message}</p>`;
+            }
+        });
+
+    </script>
+</body>
+</html>
