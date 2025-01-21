@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            height: 100vh;
+            margin: 0;
+        }
+        /* Sidebar styling */
+        .sidebar {
+            width: 250px;
+            background-color: #2c3e50;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .sidebar img {
+            width: 80px;
+            margin-bottom: 40px;
+            cursor: pointer;
+        }
+        .sidebar button {
+            width: 100%;
+            margin-bottom: 20px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            text-align: left;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 15px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        .sidebar button:hover {
+            background-color: #34495e;
+        }
+        /* Main content area */
+        .main-content {
+            flex-grow: 1;
+            padding: 40px;
+            background-color: #ecf0f1;
+        }
+        .main-content h1 {
+            margin-bottom: 20px;
+        }
+        .search-section {
+            margin-bottom: 20px;
+        }
+        .search-section input, .search-section select {
+            padding: 10px;
+            margin-right: 10px;
+            width: 200px;
+        }
+        .reports-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .reports-table th, .reports-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ccc;
+        }
+        .reports-table th {
+            background-color: #34495e;
+            color: white;
+        }
+        /* Modal Styling */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            overflow: auto;
+            padding-top: 60px;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Events</title>
+    <style>
+        /* Same styles as before */
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <a onclick="location.href='/admin/homepage'">
+            <img src="logo.png" alt="Logo">
+        </a>
+        <button onclick="window.location.href='{{ url_for('admin_home') }}'">Home</button>
+        <button onclick="window.location.href='{{ url_for('admin_reports') }}'">Reports</button>
+        <button onclick="window.location.href='{{ url_for('admin_event') }}'">Events</button>
+        <button onclick="window.location.href='{{ url_for('admin_faceregister') }}'">Face Register</button>
+        <button onclick="window.location.href='{{ url_for('admin_attendancesession') }}'">Attendance Session</button>
+        <button onclick="window.location.href='{{ url_for('logout') }}'">Log Out</button>
+    </div>
+
+    <!-- Main content area -->
+    <div class="main-content">
+        <h1>Events</h1>
+
+        <button onclick="openAddEventModal()" style="margin-bottom: 20px; padding: 10px 20px; font-size: 16px;">Add New Event</button>
+
+        <div class="search-section">
+            <label for="category">Search by Category:</label>
+            <select id="category">
+                <option value="all">Semua kategori</option>
+                <option value="kolej">Kolej</option>
+                <option value="bukan kolej">Bukan Kolej</option>
+            </select>
+            <input type="text" id="searchname" placeholder="Search by keyword">
+            <button onclick="searchEvents()">Search</button>
+        </div>
+        
+
+        <!-- Event reports table -->
+        <table class="reports-table">
+            <thead>
+                <tr>
+                    <th>Event ID</th>
+                    <th>Name</th>
+                    <th>Date</th>
+                    <th>Location</th>
+                    <th>Details</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="eventTableBody">
+                <!-- Dynamic event rows will go here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal for editing event -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Edit Event</h2>
+            <form id="editForm">
+                <input type="hidden" id="eventId">
+                <label for="name">Event Name:</label>
+                <input type="text" id="eventName" required><br><br>
+                <label for="date">Date:</label>
+                <input type="date" id="eventDate" required><br><br>
+                <label for="location">Location:</label>
+                <input type="text" id="eventLocation" required><br><br>
+                <label for="details">Details:</label>
+                <textarea id="eventDetails" required></textarea><br><br>
+                <button type="button" onclick="submitEdit()">Finalize Edit</button>
+                <button type="button" onclick="closeModal()">Cancel</button>
+            </form>
+        </div>
+    </div>
+    <div id="addEventModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAddEventModal()">&times;</span>
+            <h2>Add New Event</h2>
+            <form id="addEventForm">
+                <label for="newEventName">Event Name:</label>
+                <input type="text" id="newEventName" required><br><br>
+                
+                <label for="newEventDate">Date:</label>
+                <input type="date" id="newEventDate" required><br><br>
+                
+                <label for="newEventLocation">Location:</label>
+                <input type="text" id="newEventLocation" required><br><br>
+                
+                <label for="newEventDetails">Details:</label>
+                <textarea id="newEventDetails" required></textarea><br><br>
+                
+                <label for="newEventSesi">Sesi:</label>
+                <input type="text" id="newEventSesi" placeholder="e.g., Morning/Evening" required><br><br>
+                
+                <label for="newEventCategory">Category:</label>
+                <select id="newEventCategory" required>
+                    <option value="">Select a Category</option>
+                    <option value="kolej">kolej</option>
+                    <option value="bukan kolej">bukan kolej</option>
+                </select><br><br>
+                
+                <button type="button" onclick="submitNewEvent()">Add Event</button>
+                <button type="button" onclick="closeAddEventModal()">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Show the modal for editing event
+        function editEvent(eventid, name, date, location, details) {
+            document.getElementById("eventId").value = eventid;
+            document.getElementById("eventName").value = name;
+            document.getElementById("eventDate").value = new Date(date).toISOString().split('T')[0];
+            document.getElementById("eventLocation").value = location;
+            document.getElementById("eventDetails").value = details;
+            document.getElementById("editModal").style.display = "block";
+        }
+
+        // Close the modal
+        function closeModal() {
+            document.getElementById("editModal").style.display = "none";
+        }
+
+        // Submit the edited data to the backend
+        function submitEdit() {
+            const eventId = document.getElementById("eventId").value;
+            const eventName = document.getElementById("eventName").value;
+            const eventDate = document.getElementById("eventDate").value;
+            const eventLocation = document.getElementById("eventLocation").value;
+            const eventDetails = document.getElementById("eventDetails").value;
+
+            const updatedEventData = {
+                name: eventName,
+                date: eventDate,
+                location: eventLocation,
+                details: eventDetails
+            };
+
+            fetch(`/admin/edit_event/${eventId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedEventData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeModal();
+                    updateEventList();
+                } else {
+                    alert("Failed to update event.");
+                }
+            })
+            .catch(err => {
+                alert("Error updating event.");
+                console.error(err);
+            });
+        }
+
+        // Fetch events and populate the table
+        function updateEventList() {
+            fetch('/admin/get_events')
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('eventTableBody');
+                    tableBody.innerHTML = ''; // Clear table
+                    data.events.forEach(event => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${event.eventid}</td>
+                            <td>${event.name}</td>
+                            <td>${event.date}</td>
+                            <td>${event.location}</td>
+                            <td>${event.details}</td>
+                            <td>
+                                <button onclick="editEvent(${event.eventid}, '${event.name}', '${event.date}', '${event.location}', '${event.details}')">Edit</button>
+                                <button onclick="confirmDelete(${event.eventid})">Delete</button>
+                                <button onclick="goToAttendance(${event.eventid})">Start Attendance</button>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                })
+                .catch(err => alert("Error fetching events."));
+        }
+
+        function searchEvents() {
+            const category = document.getElementById("category").value;
+            const searchTerm = document.getElementById("searchname").value.trim();
+
+            // If no filter is applied, fetch the full event list
+            if (category === "all" && searchTerm === "") {
+                updateEventList();
+            } else {
+                // Fetch filtered events from the Flask backend
+                fetch(`/admin/search_events?category=${category}&searchTerm=${searchTerm}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const tableBody = document.getElementById('eventTableBody');
+                        tableBody.innerHTML = ''; // Clear table
+                        data.events.forEach(event => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${event.id}</td>
+                                <td>${event.name}</td>
+                                <td>${event.date}</td>
+                                <td>${event.location}</td>
+                                <td>${event.details}</td>
+                                <td>
+                                    <button onclick="editEvent(${event.id}, '${event.name}', '${event.date}', '${event.location}', '${event.details}')">Edit</button>
+                                    <button onclick="confirmDelete(${event.id})">Delete</button>
+                                </td>
+                            `;
+                            tableBody.appendChild(row);
+                        });
+                    })
+                    .catch(err => alert("Error searching events."));
+            }
+        }
+
+
+        // Confirm deletion of an event
+        function confirmDelete(eventId) {
+            if (confirm("Are you sure you want to delete this event?")) {
+                fetch(`/admin/delete_event/${eventId}`, { method: 'DELETE' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert("Event deleted.");
+                            updateEventList();
+                        } else {
+                            alert("Failed to delete event.");
+                        }
+                    })
+                    .catch(err => alert("Error deleting event."));
+            }
+        }
+
+        function goToAttendance(eventId) {
+            if (confirm("Do you want to proceed to the attendance session for this event?")) {
+                // Navigate to the attendance route for the event
+                window.location.href = `/admin/attendance/${eventId}`;
+            }
+        }
+
+        function openAddEventModal() {
+        document.getElementById("addEventModal").style.display = "block";
+    }
+
+    // Function to close the Add Event modal
+    function closeAddEventModal() {
+        document.getElementById("addEventModal").style.display = "none";
+    }
+
+    // Function to submit a new event
+    function submitNewEvent() {
+        const newEventName = document.getElementById("newEventName").value;
+        const newEventDate = document.getElementById("newEventDate").value;
+        const newEventLocation = document.getElementById("newEventLocation").value;
+        const newEventDetails = document.getElementById("newEventDetails").value;
+        const newEventSesi = document.getElementById("newEventSesi").value;
+        const newEventCategory = document.getElementById("newEventCategory").value;
+
+        const newEventData = {
+            name: newEventName,
+            date: newEventDate,
+            location: newEventLocation,
+            details: newEventDetails,
+            sesi: newEventSesi,
+            category: newEventCategory,
+        };
+
+        fetch('/admin/add_event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newEventData),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeAddEventModal();
+                updateEventList(); // Refresh the event list after adding
+            } else {
+                alert("Failed to add new event.");
+            }
+        })
+        .catch(err => {
+            alert("Error adding new event.");
+            console.error(err);
+        });
+        updateEventList();
+    }
+
+
+        // Initialize by loading events
+        updateEventList();
+    </script>
+</body>
+</html>
