@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Page</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #2c3e50;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .sidebar img {
+            width: 80px;
+            margin-bottom: 40px;
+            cursor: pointer;
+        }
+        .sidebar button {
+            width: 100%;
+            margin-bottom: 20px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            text-align: left;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 15px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        .sidebar button:hover {
+            background-color: #34495e;
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 40px;
+            background-color: #ecf0f1;
+        }
+        .main-content h1 {
+            margin-bottom: 20px;
+        }
+        .user-info {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .user-info p {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <a href="homepage.html">
+            <img src="logo.png" alt="Logo">
+        </a>
+        <button onclick="location.href='{{ url_for('student_home') }}'">Home</button>
+        <button onclick="location.href='{{ url_for('student_report') }}'">Reports</button>
+        <button onclick="location.href='{{ url_for('logout') }}'">Log Out</button>
+    </div>
+
+    <div class="main-content">
+        <h1>Welcome, {{ name }}</h1>
+
+        <div class="user-info">
+            <h2>User Information</h2>
+            <p><strong>Name:</strong> {{ name }}</p>
+            <p><strong>ID:</strong> {{ id }}</p>
+        </div>
+    </div>
+</body>
+</html>

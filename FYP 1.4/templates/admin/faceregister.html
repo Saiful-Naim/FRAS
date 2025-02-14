@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Registration</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            height: 100vh;
+        }
+        /* Sidebar styling */
+        .sidebar {
+            width: 250px;
+            background-color: #2c3e50;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            align-items: center; /* Center content horizontally */
+        }
+        .sidebar img {
+            width: 140px; /* Increase the size */
+            height: auto; /* Maintain aspect ratio */
+            margin-bottom: 40px;
+            cursor: pointer;
+            display: block;
+        }
+
+        .sidebar button {
+            width: 100%;
+            margin-bottom: 20px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            text-align: left;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 15px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        .sidebar button:hover {
+            background-color: #34495e;
+        }
+
+        /* Main content area */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            background-color: #ecf0f1;
+            padding: 40px;
+        }
+
+        /* Left side (camera feed) */
+        .left-side {
+            flex: 1;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .camera-feed {
+            width: 80%; /* Adjust width as needed */
+            max-width: 600px; /* Prevent excessive width */
+            aspect-ratio: 16 / 9; /* Maintain aspect ratio */
+            background-color: #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Right side (student ID input) */
+        .right-side {
+            flex: 1;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .right-side input {
+            padding: 10px;
+            margin-bottom: 20px;
+            width: 80%;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .right-side button {
+            padding: 10px 20px;
+            margin: 10px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .right-side button:hover {
+            background-color: #34495e;
+        }
+
+        .section-divider {
+            width: 80%;
+            margin: 25px 0;
+            border: 0;
+            border-top: 1px solid #ccc;
+        }
+        .new-student-section {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .new-student-section h2, .face-register-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        #add-student-status, #student-name, #status-message {
+            text-align: center;
+            margin: 10px 0;
+            color: #666;
+        }
+
+        .face-register-section {
+            text-align: center;
+        }
+
+        .face-register-section button {
+            display: block;
+            margin: 10px auto;
+        }
+
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <a onclick="location.href='/admin/homepage'">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
+        </a>
+        <button onclick="window.location.href='{{ url_for('admin_home') }}'">Home</button>
+        <button onclick="window.location.href='{{ url_for('admin_reports') }}'">Reports</button>
+        <button onclick="window.location.href='{{ url_for('admin_event') }}'">Events</button>
+        <button onclick="window.location.href='{{ url_for('admin_faceregister') }}'">Face Register</button>
+        <button onclick="window.location.href='{{ url_for('admin_attendancesession') }}'">Face Recognition Test</button>
+        <button onclick="window.location.href='{{ url_for('logout') }}'">Log Out</button>
+    </div>
+
+    <!-- Main content area -->
+    <div class="main-content">
+        <!-- Left side: Camera feed -->
+        <div class="left-side">
+            <div class="camera-feed" id="camera-feed"></div>
+        </div>
+
+        <!-- Right side: Student ID input and buttons -->
+        <div class="right-side">
+            <!-- New Student Registration Section -->
+            <div class="new-student-section">
+                <h2>Add New Student</h2>
+                <input type="text" id="new-student-name" placeholder="Enter Student Name" />
+                <input type="id" id="new-student-id" placeholder="Enter Student ID" />
+                <input type="password" id="new-student-password" placeholder="Enter Password" />
+                <button id="add-student">Add Student</button>
+                <p id="add-student-status"></p>
+            </div>
+
+            <hr class="section-divider">
+
+            <!-- Face Registration Section -->
+            <div class="face-register-section">
+                <h2>Register Face</h2>
+                <input type="text" id="student-id" placeholder="Enter Student ID" />
+                <button id="search-student">Search Student</button>
+                <p id="student-name"></p>
+                <button id="register-face">Register Face</button>
+                <p id="status-message"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Placeholder for camera feed logic
+        let videoStream = null;
+        const cameraFeed = document.getElementById("camera-feed");
+        const studentNameDisplay = document.getElementById("student-name");
+
+        // Start the camera feed as soon as the page loads
+        window.onload = function() {
+            startCamera();
+        };
+
+        document.getElementById("search-student").addEventListener("click", searchStudent);
+        document.getElementById("register-face").addEventListener("click", registerFace);
+
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function (stream) {
+                    videoStream = stream;
+                    cameraFeed.innerHTML = ''; // Clear the placeholder
+                    const videoElement = document.createElement('video');
+                    videoElement.srcObject = stream;
+                    videoElement.play();
+                    cameraFeed.appendChild(videoElement);
+                })
+                .catch(function (error) {
+                    document.getElementById("status-message").innerText = "Error accessing camera: " + error.message;
+                });
+        }
+
+        function searchStudent() {
+            const studentId = document.getElementById("student-id").value;
+            if (!studentId) {
+                document.getElementById("status-message").innerText = "Please enter a student ID.";
+                return;
+            }
+
+            fetch(`/admin/search_student/${studentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        studentNameDisplay.innerText = `Student Name: ${data.name}`;
+                    } else {
+                        studentNameDisplay.innerText = "Student not found.";
+                    }
+                })
+                .catch(error => {
+                    document.getElementById("status-message").innerText = "Error: " + error.message;
+                });
+        }
+
+        function registerFace() {
+            const studentid = document.getElementById("student-id").value;  // Get student ID from the input
+            if (!studentid) {
+                document.getElementById("status-message").innerText = "Please enter a student ID.";
+                return;
+            }
+
+            // Capture the current video frame from the camera
+            const canvas = document.createElement("canvas");
+            const videoElement = cameraFeed.querySelector("video");
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            const context = canvas.getContext("2d");
+            context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            const imageBase64 = canvas.toDataURL("image/jpeg").split(",")[1]; // Extract base64 image data
+
+            fetch("/admin/register_face", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ image: imageBase64, studentid: studentid })  // Pass student ID here
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById("status-message").innerText = data.message;
+                } else {
+                    document.getElementById("status-message").innerText = "Error: " + data.message;
+                }
+            })
+            .catch(error => {
+                document.getElementById("status-message").innerText = "Error: " + error.message;
+            });
+        }
+
+        document.getElementById("add-student").addEventListener("click", async () => {
+        const studentName = document.getElementById("new-student-name").value;
+        const studentId = document.getElementById("new-student-id").value;
+        const studentPassword = document.getElementById("new-student-password").value;
+        const statusMessage = document.getElementById("add-student-status");
+
+        if (!studentName || !studentId || !studentPassword) {
+            statusMessage.textContent = "All fields are required.";
+            statusMessage.style.color = "red";
+            return;
+        }
+
+        try {
+            const response = await fetch("/add_student", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    name: studentName,
+                    student_id: studentId,
+                    password: studentPassword
+                })
+            });
+
+            const result = await response.json();
+            statusMessage.textContent = result.message;
+            statusMessage.style.color = result.success ? "green" : "red";
+        } catch (error) {
+            statusMessage.textContent = "Error connecting to the server.";
+            statusMessage.style.color = "red";
+        }
+        });
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Recognition</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            height: 100vh;
+        }
+        /* Sidebar styling */
+        .sidebar {
+            width: 250px;
+            background-color: #2c3e50;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            align-items: center; /* Center content horizontally */
+        }
+        .sidebar img {
+            width: 140px; /* Increase the size */
+            height: auto; /* Maintain aspect ratio */
+            margin-bottom: 40px;
+            cursor: pointer;
+            display: block;
+        }
+
+        .sidebar button {
+            width: 100%;
+            margin-bottom: 20px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            text-align: left;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 15px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        .sidebar button:hover {
+            background-color: #34495e;
+        }
+
+        /* Main content area */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            background-color: #ecf0f1;
+            padding: 40px;
+        }
+
+        /* Left side (camera feed) */
+        .left-side {
+            flex: 1;
+            padding: 20px;
+            background-color: white; /* Set background to white */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center; /* Center horizontally */
+            align-items: center; /* Center vertically */
+        }
+
+        .camera-feed {
+            width: 80%; /* Adjust width as needed */
+            max-width: 600px; /* Prevent excessive width */
+            aspect-ratio: 16 / 9; /* Maintain aspect ratio */
+            background-color: #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+
+        /* Right side (recognition status) */
+        .right-side {
+            flex: 1;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #recognition-status {
+            font-size: 24px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .recognized {
+            color: green;
+        }
+        .not-recognized {
+            color: red;
+        }
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: 3px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        /* Pause Button (Default Orange) */
+        #pause-resume-btn {
+            background-color: #f39c12;
+            color: white;
+            border-color: #e67e22;
+        }
+
+        #pause-resume-btn:hover {
+            background-color: white;
+            color: #f39c12;
+            border-color: #f39c12;
+        }
+
+        /* Resume Button (Green when Resumed) */
+        .resume {
+            background-color: #27ae60 !important;
+            color: white !important;
+            border-color: #218c54 !important;
+        }
+
+        .resume:hover {
+            background-color: white !important;
+            color: #27ae60 !important;
+            border-color: #27ae60 !important;
+        }
+
+        /* Stop Button (Red) */
+        #stop-btn {
+            background-color: #e74c3c;
+            color: white;
+            border-color: #c0392b;
+        }
+
+        #stop-btn:hover {
+            background-color: white;
+            color: #e74c3c;
+            border-color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <a onclick="location.href='/admin/homepage'">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
+        </a>
+        <button onclick="window.location.href='{{ url_for('admin_home') }}'">Home</button>
+        <button onclick="window.location.href='{{ url_for('admin_reports') }}'">Reports</button>
+        <button onclick="window.location.href='{{ url_for('admin_event') }}'">Events</button>
+        <button onclick="window.location.href='{{ url_for('admin_faceregister') }}'">Face Register</button>
+        <button onclick="window.location.href='{{ url_for('admin_attendancesession') }}'">Face Recognition Test</button>
+        <button onclick="window.location.href='{{ url_for('logout') }}'">Log Out</button>
+    </div>
+
+    <!-- Main content area -->
+    <div class="main-content">
+        <!-- Left side: Camera feed -->
+        <div class="left-side">
+            <div class="camera-feed" id="camera-feed"></div>
+        </div>
+
+        <!-- Right side: Recognition status -->
+        <div class="right-side">
+            <h1>Face Recognition</h1>
+            <div id="recognition-status">Scanning...</div>
+            <div><button id="pause-resume-btn">Pause</button>
+            <button id="stop-btn">Stop</button>
+        </div>
+        </div>
+    </div>
+
+    <script>
+        let videoStream = null;
+        let isPaused = false;
+        let attendanceInterval = null;
+        const cameraFeed = document.getElementById("camera-feed");
+        const recognitionStatus = document.getElementById("recognition-status");
+        const pauseResumeBtn = document.getElementById("pause-resume-btn");
+        const stopBtn = document.getElementById("stop-btn");
+
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function (stream) {
+                    videoStream = stream;
+                    cameraFeed.innerHTML = ''; // Clear the placeholder
+                    const videoElement = document.createElement('video');
+                    videoElement.srcObject = stream;
+                    videoElement.play();
+                    cameraFeed.appendChild(videoElement);
+
+                    // Start continuous frame capture and recognition
+                    startAttendanceSession();
+                })
+                .catch(function (error) {
+                    recognitionStatus.innerText = "Error accessing camera: " + error.message;
+                    recognitionStatus.classList.add('not-recognized');
+                });
+        }
+
+        function startAttendanceSession() {
+            if (attendanceInterval) {
+                clearInterval(attendanceInterval);
+            }
+
+            attendanceInterval = setInterval(() => {
+                if (!isPaused) {
+                    captureAndSendFrame();
+                } else {
+                    console.log("Attendance session is paused. Skipping frame capture.");
+                }
+            }, 1000); // 1-second interval
+        }
+
+function captureAndSendFrame() {
+    const eventId = {{ event_id }};
+    const videoElement = cameraFeed.querySelector("video");
+    const canvas = document.createElement("canvas");
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
+    const context = canvas.getContext("2d");
+    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+    // Get the image as Base64
+    const imageBase64 = canvas.toDataURL("image/jpeg").split(",")[1];
+    
+    // Send the image and event ID to the backend
+    fetch("/admin/attendance1", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            image: imageBase64,
+            event_id: eventId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.recognized) {
+            // If a match is found, display both student name and ID
+            recognitionStatus.innerText = `Attendance Taken: ${data.name} (ID: ${data.studentid})`;
+            recognitionStatus.classList.remove('not-recognized');
+            recognitionStatus.classList.add('recognized');
+            // Pause the session
+            isPaused = true;
+            // Hold the message for 5 seconds
+            setTimeout(() => {
+                recognitionStatus.innerText = "Scanning...";
+                recognitionStatus.classList.remove('recognized');
+                recognitionStatus.classList.add('not-recognized');
+                // Resume the session after the timeout
+                isPaused = false;
+            }, 5000); // 5 seconds delay
+        } else {
+            // If no match is found or duplicate attendance
+            // The message might include the student's name for duplicate cases
+            recognitionStatus.innerText = data.message || "No Match Found";
+            recognitionStatus.classList.remove('recognized');
+            recognitionStatus.classList.add('not-recognized');
+        }
+    })
+    .catch(error => {
+        // Handle errors
+        recognitionStatus.innerText = "Error in recognition";
+        recognitionStatus.classList.remove('recognized');
+        recognitionStatus.classList.add('not-recognized');
+        console.error("Error:", error);
+    });
+}
+
+        // Start the attendance session on page load
+        window.onload = function() {
+            startCamera();
+            startAttendanceSession();
+        };
+
+        pauseResumeBtn.addEventListener("click", function () {
+            if (isPaused) {
+                isPaused = false;
+                pauseResumeBtn.innerText = "Pause";
+                pauseResumeBtn.classList.remove("resume"); // Remove green color
+            } else {
+                isPaused = true;
+                pauseResumeBtn.innerText = "Resume";
+                pauseResumeBtn.classList.add("resume"); // Change to green
+            }
+        });
+
+        stopBtn.addEventListener("click", function () {
+            if (attendanceInterval) {
+                clearInterval(attendanceInterval);
+            }
+            if (videoStream) {
+                const tracks = videoStream.getTracks();
+                tracks.forEach(track => track.stop());
+            }
+            window.location.href = "{{ url_for('admin_event') }}";// Replace with the actual URL of the previous page
+        });
+
+    </script>
+</body>
+</html>
